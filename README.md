@@ -1,5 +1,5 @@
 # aws-multi-account-iam-design-with-jump-account
-マルチアカウントにおけるJumpアカウントを用いたIMA設計の CloudFormation テンプレートです。
+AWSマルチアカウントにおけるJumpアカウントを用いたIMA設計のCloudFormationテンプレートです。
 
 ## 概要
 AWSでマルチアカウント構成にした際に、Jumpアカウント方式で各AWSアカウントにログインする手法があります。  
