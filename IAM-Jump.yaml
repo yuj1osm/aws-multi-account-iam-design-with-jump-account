@@ -1,0 +1,319 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Cnova IAM for Jump for Testing
+
+Resources:
+  ###########################
+  # Change Manager Policies
+  ###########################
+  # Change ManegerのPassRoleポリシー
+  ChangeManagerPassRolePolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      Groups:
+        - !Ref JumpAdminGroup
+        - !Ref ChangeApprovalGroup
+        - !Ref LeaderGroup
+        - !Ref MemberGroup
+      PolicyName: ChangeManagerPassRolePolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'iam:PassRole'
+            Resource:
+              - 'arn:aws:iam::<AccountID>:role/AWS-QuickSetup-SSMChangeMgr-MyAWSAdminAdminRole'
+
+  # Change Manegerの実行ポリシー
+  ChangeManagerExecutionPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      Groups:
+        - !Ref JumpAdminGroup
+        - !Ref ChangeApprovalGroup
+        - !Ref LeaderGroup
+        - !Ref MemberGroup
+      PolicyName: ChangeManagerExecutionPolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: StartChangeRequestExecution
+            Effect: Allow
+            Action:
+              - 'ssm:StartChangeRequestExecution'
+            Resource:
+              - 'arn:aws:ssm:*:<AccountID>:automation-definition/*:*'
+          - Sid: SendAutomationSignal
+            Effect: Allow
+            Action:
+              - 'ssm:SendAutomationSignal'
+            Resource: '*'
+          - Sid: StopAutomationExecution
+            Effect: Allow
+            Action:
+              - 'ssm:StopAutomationExecution'
+            Resource: '*'
+
+  ###########################
+  # Admin Role
+  ###########################
+  # Jump環境管理者用ロール
+  JumpAdminRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: 'arn:aws:iam::<AccountID>:root'
+            Action: 'sts:AssumeRole'
+      RoleName: Jump_AdminRole
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AdministratorAccess'
+
+  ###########################
+  # Jump Admin Group
+  ###########################
+  JumpAdminGroup:
+    Type: 'AWS::IAM::Group'
+    Properties:
+      GroupName: JumpAdminGroup
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/ReadOnlyAccess'
+        - 'arn:aws:iam::aws:policy/AWSSupportAccess'
+
+  AddUserJumpAdminGroup:
+    Type: 'AWS::IAM::UserToGroupAddition'
+    Properties:
+      GroupName: !Ref JumpAdminGroup
+      Users:
+        # Jumpアカウント管理者
+        - admin01
+        - admin02
+
+  SwitchRoleJumpAdminRole:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      Groups:
+        - !Ref JumpAdminGroup
+      PolicyName: SwitchRoleJumpAdminRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'sts:AssumeRole'
+            Resource: !GetAtt
+              - JumpAdminRole
+              - Arn
+
+  ###########################
+  # Leader Group
+  ###########################
+  LeaderGroup:
+    Type: 'AWS::IAM::Group'
+    Properties:
+      GroupName: LeaderGroup
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/ReadOnlyAccess'
+        - 'arn:aws:iam::aws:policy/AWSSupportAccess'
+
+  AddUserLeaderGroup:
+    Type: 'AWS::IAM::UserToGroupAddition'
+    Properties:
+      GroupName: !Ref LeaderGroup
+      Users:
+        - leader01
+
+  ProdLeaderWorkGroup:
+    Type: 'AWS::IAM::Group'
+    Properties:
+      GroupName: ProdLeaderWorkGroup
+
+  ###########################
+  # Member Group
+  ###########################
+  MemberGroup:
+    Type: 'AWS::IAM::Group'
+    Properties:
+      GroupName: MemberGroup
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/ReadOnlyAccess'
+        - 'arn:aws:iam::aws:policy/AWSSupportAccess'
+
+  AddUserMemberGroup:
+    Type: 'AWS::IAM::UserToGroupAddition'
+    Properties:
+      GroupName: !Ref MemberGroup
+      Users:
+        - Member01
+
+  ProdMemberWorkGroup:
+    Type: 'AWS::IAM::Group'
+    Properties:
+      GroupName: ProdMemberWorkGroup
+
+  ###########################
+  # Switch Role Policy
+  ###########################
+
+  # Dev環境向け
+  SwitchRoleDevReadOnlyRole:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      Groups:
+        - !Ref LeaderGroup
+        - !Ref MemberGroup
+      PolicyName: SwitchRoleDevReadOnlyRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'sts:AssumeRole'
+            Resource:
+              - 'arn:aws:iam::<AccountID>:role/Dev_ReadOnlyRole'
+
+  SwitchRoleDevLeaderRole:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      Groups:
+        - !Ref LeaderGroup
+      PolicyName: SwitchRoleDevLeaderRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'sts:AssumeRole'
+            Resource:
+              - 'arn:aws:iam::<AccountID>:role/Dev_LeaderRole'
+
+  SwitchRoleDevMemberRole:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      Groups:
+        - !Ref MemberGroup
+      PolicyName: SwitchRoleDevMemberRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'sts:AssumeRole'
+            Resource:
+              - 'arn:aws:iam::<AccountID>:role/Dev_MemberRole'
+
+  # Stg環境向け
+  SwitchRoleStgReadOnlyRole:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      Groups:
+        - !Ref LeaderGroup
+        - !Ref MemberGroup
+      PolicyName: SwitchRoleStgReadOnlyRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'sts:AssumeRole'
+            Resource:
+              - 'arn:aws:iam::<AccountID>:role/Stg_ReadOnlyRole'
+
+  SwitchRoleStgLeaderRole:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      Groups:
+        - !Ref LeaderGroup
+      PolicyName: SwitchRoleStgLeaderRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'sts:AssumeRole'
+            Resource:
+              - 'arn:aws:iam::<AccountID>:role/Stg_LeaderRole'
+
+  SwitchRoleStgMemberRole:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      Groups:
+        - !Ref MemberGroup
+      PolicyName: SwitchRoleStgMemberRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'sts:AssumeRole'
+            Resource:
+              - 'arn:aws:iam::<AccountID>:role/Stg_MemberRole'
+
+  # Prod環境向け
+  SwitchRoleProdReadOnlyRole:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      Groups:
+        - !Ref LeaderGroup
+        - !Ref MemberGroup
+      PolicyName: SwitchRoleProdReadOnlyRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'sts:AssumeRole'
+            Resource:
+              - 'arn:aws:iam::<AccountID>:role/Prod_ReadOnlyRole'
+
+  SwitchRoleProdLeaderRole:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      Groups:
+        - !Ref ProdLeaderWorkGroup
+      PolicyName: SwitchRoleProdLeaderRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'sts:AssumeRole'
+            Resource:
+              - 'arn:aws:iam::<AccountID>:role/Prod_LeaderRole'
+
+  SwitchRoleProdMemberRole:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      Groups:
+        - !Ref ProdMemberWorkGroup
+      PolicyName: SwitchRoleProdMemberRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'sts:AssumeRole'
+            Resource:
+              - 'arn:aws:iam::<AccountID>:role/Prod_MemberRole'
+
+  ###########################
+  # Change Approval Group
+  ###########################
+  ChangeApprovalGroup:
+    Type: 'AWS::IAM::Group'
+    Properties:
+      GroupName: ChangeApprovalGroup
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/ReadOnlyAccess'
+        - 'arn:aws:iam::aws:policy/AWSSupportAccess'
+
+  AddUserChangeApprovalGroup:
+    Type: 'AWS::IAM::UserToGroupAddition'
+    Properties:
+      GroupName: !Ref ChangeApprovalGroup
+      Users:
+        # リーダー
+        - leader01

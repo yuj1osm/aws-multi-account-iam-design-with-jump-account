@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: IAM Role for Dev Account <AccountID>
+
+Resources:
+
+  ###########################
+  # Leader Role
+  ###########################
+  LeaderRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: 'arn:aws:iam::<AccountID>:root'
+            Action: 'sts:AssumeRole'
+      RoleName: Dev_LeaderRole
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/ReadOnlyAccess'
+        - 'arn:aws:iam::aws:policy/PowerUserAccess'
+        - 'arn:aws:iam::aws:policy/AWSSupportAccess'
+
+  ###########################
+  # Member Role
+  ###########################
+  MemberRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: 'arn:aws:iam::<AccountID>:root'
+            Action: 'sts:AssumeRole'
+      RoleName: Dev_MemberRole
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/ReadOnlyAccess'
+        - 'arn:aws:iam::aws:policy/AWSSupportAccess'
+      Policies:
+        - PolicyName: DevMemberPermitPolicy
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'cloudformation:*'
+                  - 'cloudwatch:*'
+                  - 'codedeploy:*'
+                  - 'codepipeline:*'
+                  - 'dynamodb:*'
+                  - 'ec2:*'
+                  - 'events:*'
+                  - 'iam:Get*'
+                  - 'iam:List*'
+                  - 'iam:PassRole'
+                  - 'lambda:*'
+                  - 'logs:*'
+                  - 's3:*'
+                  - 'ses:*'
+                  - 'sns:*'
+                  - 'ssm:*'
+                  - 'states:*'
+                  - 'xray:*'
+                Resource: '*'
+        - PolicyName: DevPartnerProhibitPolicy
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              - Effect: Deny
+                Action:
+                  - 'aws-portal:*'
+                  - 'ec2:CreateVpc*'
+                  - 'ec2:ModifyVpc*'
+                  - 'ec2:AttachInternetGateway'
+                  - 'ec2:CreateInternetGateway'
+                  - 'ec2:CreateNatGateway'
+                Resource: '*'
+
+  ###########################
+  # ReadOnly Role
+  ###########################
+  ReadOnlyRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: 'arn:aws:iam::<AccountID>:root'
+            Action: 'sts:AssumeRole'
+      RoleName: Dev_ReadOnlyRole
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/ReadOnlyAccess'
+        - 'arn:aws:iam::aws:policy/AWSSupportAccess'
+      Policies:
+        - PolicyName: DevReadOnlyProhibitPolicy
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              - Effect: Deny
+                Action:
+                  - 's3:Get*'
+                  - 'aws-portal:*'
+                Resource: '*'
